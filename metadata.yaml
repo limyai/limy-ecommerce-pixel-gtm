@@ -1,0 +1,5 @@
+homepage: https://github.com/limyai/limy-ecommerce-pixel-gtm
+documentation: https://docs.getlimy.ai
+versions:
+  - sha: 45ec1f8c1d710523a2dc8cc6c432d909c33907d3
+    changeNotes: Initial release
