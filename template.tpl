@@ -51,7 +51,78 @@ ___TEMPLATE_PARAMETERS___
         "errorMessage": "Token must start with lmy_ (or be a GTM variable)."
       }
     ],
-    "help": "Your Limy token (starts with \u003ccode\u003elmy_\u003c/code\u003e)."
+    "help": "Your Limy token (starts with <code>lmy_</code>)."
+  },
+  {
+    "type": "SELECT",
+    "name": "eventType",
+    "displayName": "Event Type",
+    "macrosInSelect": false,
+    "selectItems": [
+      {
+        "value": "initiate",
+        "displayValue": "Initiate (Default)"
+      },
+      {
+        "value": "purchase",
+        "displayValue": "Purchase"
+      }
+    ],
+    "simpleValueType": true,
+    "alwaysInSummary": true,
+    "defaultValue": "initiate"
+  },
+  {
+    "type": "TEXT",
+    "name": "lmy_name",
+    "displayName": "Product Name",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "eventType",
+        "equals": "purchase",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "lmy_price",
+    "displayName": "Price",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "eventType",
+        "equals": "purchase",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "lmy_product_id",
+    "displayName": "Product ID",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "eventType",
+        "equals": "purchase",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "lmy_quantity",
+    "displayName": "Quantity",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "eventType",
+        "equals": "purchase",
+        "type": "EQUALS"
+      }
+    ]
   }
 ]
 
@@ -64,14 +135,26 @@ const injectScript = require('injectScript');
 const getType = require('getType');
 
 const SDK_URL = 'https://sdk.getlimy.ai/p/limy-analytics.min.js';
+const limy = createArgumentsQueue('limy', 'limy.q');
 
+// Initialize if the SDK isn't already loaded
 if (getType(copyFromWindow('limy')) !== 'function') {
-  const limy = createArgumentsQueue('limy', 'limy.q');
-  limy('initiate', data.token);
+  if (data.token) {
+    limy('initiate', data.token);
+  }
+}
+
+// Trigger custom events based on user selection
+if (data.eventType === 'purchase') {
+  limy('track', 'lmy_purchase', {
+    lmy_name: data.lmy_name,
+    lmy_price: data.lmy_price,
+    lmy_product_id: data.lmy_product_id,
+    lmy_quantity: data.lmy_quantity
+  });
 }
 
 injectScript(SDK_URL, data.gtmOnSuccess, data.gtmOnFailure, 'limy_sdk');
-
 
 ___WEB_PERMISSIONS___
 
@@ -228,7 +311,20 @@ scenarios:
     runCode(mockData);
     assertThat(initiateCalls).isEqualTo(0);
     assertApi('injectScript').wasCalled();
-
+- name: fires purchase event when eventType is purchase
+  code: |-
+    const mockData = { token: 'lmy_test', eventType: 'purchase', lmy_name: 'AI T-Shirt', lmy_price: '29.99', lmy_product_id: 'SKU123', lmy_quantity: '2' };
+    let eventName = null;
+    let eventProps = null;
+    mock('copyFromWindow', () => undefined);
+    mock('createArgumentsQueue', (fnKey, arrKey) => {
+      return (cmd, arg1, arg2) => { if (cmd === 'event') { eventName = arg1; eventProps = arg2; } };
+    });
+    runCode(mockData);
+    assertThat(eventName).isEqualTo('lmy_purchase');
+    assertThat(eventProps.lmy_name).isEqualTo('AI T-Shirt');
+    assertThat(eventProps.lmy_product_id).isEqualTo('SKU123');
+    assertApi('injectScript').wasCalled();
 
 ___NOTES___
 
