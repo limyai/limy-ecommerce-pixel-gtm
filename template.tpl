@@ -1,11 +1,3 @@
-___TERMS_OF_SERVICE___
-
-By creating or modifying this file you agree to Google Tag Manager's Community
-Template Gallery Developer Terms of Service available at
-https://developers.google.com/tag-manager/gallery-tos (or such other URL as
-Google may provide), as modified from time to time.
-
-
 ___INFO___
 
 {
@@ -51,7 +43,7 @@ ___TEMPLATE_PARAMETERS___
         "errorMessage": "Token must start with lmy_ (or be a GTM variable)."
       }
     ],
-    "help": "Your Limy token (starts with <code>lmy_</code>)."
+    "help": "Your Limy token (starts with \u003ccode\u003elmy_\u003c/code\u003e)."
   },
   {
     "type": "SELECT",
@@ -64,13 +56,29 @@ ___TEMPLATE_PARAMETERS___
         "displayValue": "Initiate (Default)"
       },
       {
-        "value": "purchase",
-        "displayValue": "Purchase"
+        "value": "track",
+        "displayValue": "Track Event"
       }
     ],
     "simpleValueType": true,
     "alwaysInSummary": true,
     "defaultValue": "initiate"
+  },
+  {
+    "type": "TEXT",
+    "name": "eventName",
+    "displayName": "Event Name",
+    "simpleValueType": true,
+    "alwaysInSummary": true,
+    "defaultValue": "lmy_purchase",
+    "enablingConditions": [
+      {
+        "paramName": "eventType",
+        "equals": "track",
+        "type": "EQUALS",
+        "paramValue": "track"
+      }
+    ]
   },
   {
     "type": "TEXT",
@@ -80,7 +88,7 @@ ___TEMPLATE_PARAMETERS___
     "enablingConditions": [
       {
         "paramName": "eventType",
-        "equals": "purchase",
+        "equals": "track",
         "type": "EQUALS"
       }
     ]
@@ -93,7 +101,7 @@ ___TEMPLATE_PARAMETERS___
     "enablingConditions": [
       {
         "paramName": "eventType",
-        "equals": "purchase",
+        "equals": "track",
         "type": "EQUALS"
       }
     ]
@@ -106,7 +114,7 @@ ___TEMPLATE_PARAMETERS___
     "enablingConditions": [
       {
         "paramName": "eventType",
-        "equals": "purchase",
+        "equals": "track",
         "type": "EQUALS"
       }
     ]
@@ -119,7 +127,7 @@ ___TEMPLATE_PARAMETERS___
     "enablingConditions": [
       {
         "paramName": "eventType",
-        "equals": "purchase",
+        "equals": "track",
         "type": "EQUALS"
       }
     ]
@@ -145,8 +153,8 @@ if (getType(copyFromWindow('limy')) !== 'function') {
 }
 
 // Trigger custom events based on user selection
-if (data.eventType === 'purchase') {
-  limy('track', 'lmy_purchase', {
+if (data.eventType === 'track' && data.eventName) {
+  limy('track', data.eventName, {
     lmy_name: data.lmy_name,
     lmy_price: data.lmy_price,
     lmy_product_id: data.lmy_product_id,
@@ -155,6 +163,7 @@ if (data.eventType === 'purchase') {
 }
 
 injectScript(SDK_URL, data.gtmOnSuccess, data.gtmOnFailure, 'limy_sdk');
+
 
 ___WEB_PERMISSIONS___
 
@@ -311,21 +320,24 @@ scenarios:
     runCode(mockData);
     assertThat(initiateCalls).isEqualTo(0);
     assertApi('injectScript').wasCalled();
-- name: fires purchase event when eventType is purchase
+- name: fires track method with custom event parameter when eventType is track
   code: |-
-    const mockData = { token: 'lmy_test', eventType: 'purchase', lmy_name: 'AI T-Shirt', lmy_price: '29.99', lmy_product_id: 'SKU123', lmy_quantity: '2' };
-    let eventName = null;
+    const mockData = { token: 'lmy_test', eventType: 'track', eventName: 'lmy_purchase', lmy_name: 'AI T-Shirt', lmy_price: '29.99', lmy_product_id: 'SKU123', lmy_quantity: '2' };
+    let trackedEventName = null;
     let eventProps = null;
     mock('copyFromWindow', () => undefined);
     mock('createArgumentsQueue', (fnKey, arrKey) => {
-      return (cmd, arg1, arg2) => { if (cmd === 'event') { eventName = arg1; eventProps = arg2; } };
+      return (cmd, arg1, arg2) => { if (cmd === 'track') { trackedEventName = arg1; eventProps = arg2; } };
     });
     runCode(mockData);
-    assertThat(eventName).isEqualTo('lmy_purchase');
+    assertThat(trackedEventName).isEqualTo('lmy_purchase');
     assertThat(eventProps.lmy_name).isEqualTo('AI T-Shirt');
     assertThat(eventProps.lmy_product_id).isEqualTo('SKU123');
     assertApi('injectScript').wasCalled();
 
+
 ___NOTES___
 
 Created on 8/12/2026, 6:40:24 PM
+
+
