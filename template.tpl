@@ -141,6 +141,7 @@ const createArgumentsQueue = require('createArgumentsQueue');
 const copyFromWindow = require('copyFromWindow');
 const injectScript = require('injectScript');
 const getType = require('getType');
+const copyFromDataLayer = require('copyFromDataLayer');
 
 const SDK_URL = 'https://sdk.getlimy.ai/p/limy-analytics.min.js';
 const limy = createArgumentsQueue('limy', 'limy.q');
@@ -154,15 +155,37 @@ if (getType(copyFromWindow('limy')) !== 'function') {
 
 // Trigger custom events based on user selection
 if (data.eventType === 'track' && data.eventName) {
+  
+  let lmy_name = data.lmy_name;
+  let lmy_price = data.lmy_price;
+  let lmy_product_id = data.lmy_product_id;
+  let lmy_quantity = data.lmy_quantity;
+
+  // Auto-Parsing: Check the Data Layer for standard GA4 ecommerce data
+  const ecomm = copyFromDataLayer('ecommerce');
+  
+  if (ecomm && ecomm.items && getType(ecomm.items) === 'array' && ecomm.items.length > 0) {
+    const firstItem = ecomm.items[0]; 
+    if (!lmy_name) lmy_name = firstItem.item_name || firstItem.name;
+    if (!lmy_price) lmy_price = firstItem.price;
+    if (!lmy_product_id) lmy_product_id = firstItem.item_id || firstItem.id;
+    if (!lmy_quantity) lmy_quantity = firstItem.quantity;
+  }
+
+  // Send the finalized payload to Limy
   limy('track', data.eventName, {
-    lmy_name: data.lmy_name,
-    lmy_price: data.lmy_price,
-    lmy_product_id: data.lmy_product_id,
-    lmy_quantity: data.lmy_quantity
+    lmy_name: lmy_name,
+    lmy_price: lmy_price,
+    lmy_product_id: lmy_product_id,
+    lmy_quantity: lmy_quantity
   });
 }
 
-injectScript(SDK_URL, data.gtmOnSuccess, data.gtmOnFailure, 'limy_sdk');
+// Fallbacks prevent sandbox crashes during manual testing
+const onSuccess = data.gtmOnSuccess || function() {};
+const onFailure = data.gtmOnFailure || function() {};
+
+injectScript(SDK_URL, onSuccess, onFailure, 'limy_sdk');
 
 
 ___WEB_PERMISSIONS___
@@ -293,6 +316,43 @@ ___WEB_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "read_data_layer",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "allowedKeys",
+          "value": {
+            "type": 1,
+            "string": "specific"
+          }
+        },
+        {
+          "key": "keyPatterns",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "ecommerce"
+              },
+              {
+                "type": 1,
+                "string": "ecommerce.*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   }
 ]
 
@@ -308,32 +368,35 @@ scenarios:
     mock('createArgumentsQueue', (fnKey, arrKey) => {
       return (cmd, a) => { if (cmd === 'initiate') initiated = a; };
     });
+
     runCode(mockData);
     assertThat(initiated).isEqualTo('lmy_test');
     assertApi('injectScript').wasCalled();
 - name: does not re-initiate when the SDK is already loaded
-  code: |-
-    const mockData = { token: 'lmy_test' };
-    let initiateCalls = 0;
-    mock('copyFromWindow', () => () => {});
-    mock('createArgumentsQueue', () => { return (cmd) => { if (cmd === 'initiate') initiateCalls++; }; });
-    runCode(mockData);
-    assertThat(initiateCalls).isEqualTo(0);
-    assertApi('injectScript').wasCalled();
-- name: fires track method with custom event parameter when eventType is track
-  code: |-
-    const mockData = { token: 'lmy_test', eventType: 'track', eventName: 'lmy_purchase', lmy_name: 'AI T-Shirt', lmy_price: '29.99', lmy_product_id: 'SKU123', lmy_quantity: '2' };
-    let trackedEventName = null;
-    let eventProps = null;
-    mock('copyFromWindow', () => undefined);
-    mock('createArgumentsQueue', (fnKey, arrKey) => {
-      return (cmd, arg1, arg2) => { if (cmd === 'track') { trackedEventName = arg1; eventProps = arg2; } };
-    });
-    runCode(mockData);
-    assertThat(trackedEventName).isEqualTo('lmy_purchase');
-    assertThat(eventProps.lmy_name).isEqualTo('AI T-Shirt');
-    assertThat(eventProps.lmy_product_id).isEqualTo('SKU123');
-    assertApi('injectScript').wasCalled();
+  code: "const mockData = { token: 'lmy_test' };\nlet initiateCalls = 0;\nmock('copyFromWindow',\
+    \ () => () => {});\nmock('createArgumentsQueue', () => { \n  return (cmd) => {\
+    \ if (cmd === 'initiate') initiateCalls++; }; \n});\nrunCode(mockData);\nassertThat(initiateCalls).isEqualTo(0);\n\
+    assertApi('injectScript').wasCalled();"
+- name: fires track method with manual parameters
+  code: "const mockData = { \n  token: 'lmy_test', \n  eventType: 'track', \n  eventName:\
+    \ 'lmy_purchase', \n  lmy_name: 'Manual Shirt', \n  lmy_price: '29.99', \n  lmy_product_id:\
+    \ 'MANUAL123', \n  lmy_quantity: '2' \n};\nlet trackedEventName = null;\nlet eventProps\
+    \ = null;\nmock('copyFromWindow', () => undefined);\nmock('copyFromDataLayer',\
+    \ () => undefined);\nmock('createArgumentsQueue', (fnKey, arrKey) => {\n  return\
+    \ (cmd, arg1, arg2) => { \n    if (cmd === 'track') { trackedEventName = arg1;\
+    \ eventProps = arg2; } \n  };\n});\nrunCode(mockData);\nassertThat(trackedEventName).isEqualTo('lmy_purchase');\n\
+    assertThat(eventProps.lmy_name).isEqualTo('Manual Shirt');\nassertThat(eventProps.lmy_product_id).isEqualTo('MANUAL123');\n\
+    assertApi('injectScript').wasCalled();"
+- name: fires track method with auto-parsed ecommerce data layer
+  code: "const mockData = { \n  token: 'lmy_test', \n  eventType: 'track', \n  eventName:\
+    \ 'lmy_purchase' \n};\nlet autoEventName = null;\nlet autoProps = null;\nmock('copyFromWindow',\
+    \ () => undefined);\nmock('copyFromDataLayer', (key) => {\n  if (key === 'ecommerce')\
+    \ {\n    return { items: [ { item_name: 'Auto Shirt', price: '19.99', item_id:\
+    \ 'AUTO123', quantity: 1 } ] };\n  }\n  return undefined;\n});\nmock('createArgumentsQueue',\
+    \ (fnKey, arrKey) => {\n  return (cmd, arg1, arg2) => { \n    if (cmd === 'track')\
+    \ { autoEventName = arg1; autoProps = arg2; } \n  };\n});\nrunCode(mockData);\n\
+    assertThat(autoEventName).isEqualTo('lmy_purchase');\nassertThat(autoProps.lmy_name).isEqualTo('Auto\
+    \ Shirt');\nassertThat(autoProps.lmy_product_id).isEqualTo('AUTO123');\nassertApi('injectScript').wasCalled();"
 
 
 ___NOTES___
