@@ -1,5 +1,10 @@
 homepage: https://github.com/limyai/limy-ecommerce-pixel-gtm
 documentation: https://docs.getlimy.ai
 versions:
+  - sha: 1e647ac147c980e8ffb29c8b67bf9802b0502c16
+    changeNotes: |
+      Add product-level event mapping (name, price, product ID, quantity) with
+      automatic GA4 dataLayer ecommerce parsing.
+      Fix enabling conditions that crashed tag instantiation.
   - sha: a36c2220908bcfee106c02304eb3b9db606e82ac
     changeNotes: Initial release
