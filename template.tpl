@@ -89,7 +89,8 @@ ___TEMPLATE_PARAMETERS___
       {
         "paramName": "eventType",
         "equals": "track",
-        "type": "EQUALS"
+        "type": "EQUALS",
+        "paramValue": "track"
       }
     ]
   },
@@ -102,7 +103,8 @@ ___TEMPLATE_PARAMETERS___
       {
         "paramName": "eventType",
         "equals": "track",
-        "type": "EQUALS"
+        "type": "EQUALS",
+        "paramValue": "track"
       }
     ]
   },
@@ -115,7 +117,8 @@ ___TEMPLATE_PARAMETERS___
       {
         "paramName": "eventType",
         "equals": "track",
-        "type": "EQUALS"
+        "type": "EQUALS",
+        "paramValue": "track"
       }
     ]
   },
@@ -128,7 +131,8 @@ ___TEMPLATE_PARAMETERS___
       {
         "paramName": "eventType",
         "equals": "track",
-        "type": "EQUALS"
+        "type": "EQUALS",
+        "paramValue": "track"
       }
     ]
   }
@@ -144,13 +148,13 @@ const getType = require('getType');
 const copyFromDataLayer = require('copyFromDataLayer');
 
 const SDK_URL = 'https://sdk.getlimy.ai/p/limy-analytics.min.js';
+// Capture load state BEFORE createArgumentsQueue defines window.limy
+const isSdkLoaded = getType(copyFromWindow('limy')) === 'function';
 const limy = createArgumentsQueue('limy', 'limy.q');
 
 // Initialize if the SDK isn't already loaded
-if (getType(copyFromWindow('limy')) !== 'function') {
-  if (data.token) {
-    limy('initiate', data.token);
-  }
+if (!isSdkLoaded && data.token) {
+  limy('initiate', data.token);
 }
 
 // Trigger custom events based on user selection
