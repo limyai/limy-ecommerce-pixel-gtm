@@ -73,9 +73,24 @@ ___TEMPLATE_PARAMETERS___
     "defaultValue": "initiate"
   },
   {
-    "type": "TEXT",
+    "type": "SELECT",
     "name": "eventName",
     "displayName": "Event Name",
+    "macrosInSelect": false,
+    "selectItems": [
+      {
+        "value": "lmy_purchase",
+        "displayValue": "Purchase"
+      },
+      {
+        "value": "lmy_add_to_cart",
+        "displayValue": "Add to Cart"
+      },
+      {
+        "value": "lmy_begin_checkout",
+        "displayValue": "Begin Checkout"
+      }
+    ],
     "simpleValueType": true,
     "alwaysInSummary": true,
     "defaultValue": "lmy_purchase",
