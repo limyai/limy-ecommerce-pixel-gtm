@@ -182,30 +182,25 @@ if (!isSdkLoaded && data.token) {
 
 // Trigger custom events based on user selection
 if (data.eventType === 'track' && data.eventName) {
-  
-  let lmy_name = data.lmy_name;
-  let lmy_price = data.lmy_price;
-  let lmy_product_id = data.lmy_product_id;
-  let lmy_quantity = data.lmy_quantity;
+  const ecommerce = copyFromDataLayer('ecommerce');
+  const dataLayerItems = ecommerce && getType(ecommerce.items) === 'array' ? ecommerce.items : [];
+  const items = data.lmy_product_id
+    ? [{
+        lmy_name: data.lmy_name,
+        lmy_price: data.lmy_price,
+        lmy_product_id: data.lmy_product_id,
+        lmy_quantity: data.lmy_quantity
+      }]
+    : dataLayerItems.map(function(item) {
+        return {
+          lmy_name: item.item_name || item.name,
+          lmy_price: item.price,
+          lmy_product_id: item.item_id || item.id,
+          lmy_quantity: item.quantity
+        };
+      });
 
-  // Auto-Parsing: Check the Data Layer for standard GA4 ecommerce data
-  const ecomm = copyFromDataLayer('ecommerce');
-  
-  if (ecomm && ecomm.items && getType(ecomm.items) === 'array' && ecomm.items.length > 0) {
-    const firstItem = ecomm.items[0]; 
-    if (!lmy_name) lmy_name = firstItem.item_name || firstItem.name;
-    if (!lmy_price) lmy_price = firstItem.price;
-    if (!lmy_product_id) lmy_product_id = firstItem.item_id || firstItem.id;
-    if (!lmy_quantity) lmy_quantity = firstItem.quantity;
-  }
-
-  // Send the finalized payload to Limy
-  limy('track', data.eventName, {
-    lmy_name: lmy_name,
-    lmy_price: lmy_price,
-    lmy_product_id: lmy_product_id,
-    lmy_quantity: lmy_quantity
-  });
+  limy('track', data.eventName, { items: items });
 }
 
 // Fallbacks prevent sandbox crashes during manual testing
@@ -409,10 +404,10 @@ scenarios:
     \ 'lmy_purchase', \n  lmy_name: 'Manual Shirt', \n  lmy_price: '29.99', \n  lmy_product_id:\
     \ 'MANUAL123', \n  lmy_quantity: '2' \n};\nlet trackedEventName = null;\nlet eventProps\
     \ = null;\nmock('copyFromWindow', () => undefined);\nmock('copyFromDataLayer',\
-    \ () => undefined);\nmock('createArgumentsQueue', (fnKey, arrKey) => {\n  return\
+    \ () => ({ items: [ { item_id: 'CART1' }, { item_id: 'CART2' } ] }));\nmock('createArgumentsQueue', (fnKey, arrKey) => {\n  return\
     \ (cmd, arg1, arg2) => { \n    if (cmd === 'track') { trackedEventName = arg1;\
     \ eventProps = arg2; } \n  };\n});\nrunCode(mockData);\nassertThat(trackedEventName).isEqualTo('lmy_purchase');\n\
-    assertThat(eventProps.lmy_name).isEqualTo('Manual Shirt');\nassertThat(eventProps.lmy_product_id).isEqualTo('MANUAL123');\n\
+    assertThat(eventProps.items[0].lmy_name).isEqualTo('Manual Shirt');\nassertThat(eventProps.items[0].lmy_product_id).isEqualTo('MANUAL123');\nassertThat(eventProps.items.length).isEqualTo(1);\n\
     assertApi('injectScript').wasCalled();"
 - name: fires track method with auto-parsed ecommerce data layer
   code: "const mockData = { \n  token: 'lmy_test', \n  eventType: 'track', \n  eventName:\
@@ -422,8 +417,34 @@ scenarios:
     \ 'AUTO123', quantity: 1 } ] };\n  }\n  return undefined;\n});\nmock('createArgumentsQueue',\
     \ (fnKey, arrKey) => {\n  return (cmd, arg1, arg2) => { \n    if (cmd === 'track')\
     \ { autoEventName = arg1; autoProps = arg2; } \n  };\n});\nrunCode(mockData);\n\
-    assertThat(autoEventName).isEqualTo('lmy_purchase');\nassertThat(autoProps.lmy_name).isEqualTo('Auto\
-    \ Shirt');\nassertThat(autoProps.lmy_product_id).isEqualTo('AUTO123');\nassertApi('injectScript').wasCalled();"
+    assertThat(autoEventName).isEqualTo('lmy_purchase');\nassertThat(autoProps.items[0].lmy_name).isEqualTo('Auto\
+    \ Shirt');\nassertThat(autoProps.items[0].lmy_product_id).isEqualTo('AUTO123');\nassertApi('injectScript').wasCalled();"
+- name: sends every ecommerce item for the selected event
+  code: |-
+    const mockData = { token: 'lmy_test', eventType: 'track', eventName: 'lmy_add_to_cart' };
+    let trackedEventName = null;
+    let eventProps = null;
+    mock('copyFromWindow', () => undefined);
+    mock('copyFromDataLayer', (key) => {
+      if (key === 'ecommerce') {
+        return { items: [
+          { item_name: 'First Shirt', price: 10, item_id: 'FIRST1', quantity: 1 },
+          { item_name: 'Second Shirt', price: 20, item_id: 'SECOND2', quantity: 3 }
+        ] };
+      }
+      return undefined;
+    });
+    mock('createArgumentsQueue', (fnKey, arrKey) => {
+      return (cmd, arg1, arg2) => {
+        if (cmd === 'track') { trackedEventName = arg1; eventProps = arg2; }
+      };
+    });
+    runCode(mockData);
+    assertThat(trackedEventName).isEqualTo('lmy_add_to_cart');
+    assertThat(eventProps.items.length).isEqualTo(2);
+    assertThat(eventProps.items[1].lmy_product_id).isEqualTo('SECOND2');
+    assertThat(eventProps.items[1].lmy_quantity).isEqualTo(3);
+    assertApi('injectScript').wasCalled();
 
 
 ___NOTES___
