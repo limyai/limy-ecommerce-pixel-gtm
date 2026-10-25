@@ -1,6 +1,11 @@
 homepage: https://github.com/limyai/limy-ecommerce-pixel-gtm
 documentation: https://docs.getlimy.ai
 versions:
+  - sha: a4b516c170bce0a991e9fbdd632037382f1dec34
+    changeNotes: |
+      Map your own data layer names: the new Items field takes your products list name, and Product Name, Price, Product ID and Quantity take your field names inside each product.
+      Breaking: Product Name, Price, Product ID and Quantity now take field names, not values. If you typed values or variables in them, replace them with your field names (for example item_id) before you publish.
+      Read data layer permission is now "any key", so the tag can read your own names.
   - sha: a18f4903d7dcf207dac2eb07a25b1434a66fb934
     changeNotes: |
       Add "Add to Cart" and "Begin Checkout" to the Event Name dropdown.
