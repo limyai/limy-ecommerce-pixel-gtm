@@ -108,7 +108,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "items",
     "displayName": "Items",
     "simpleValueType": true,
-    "valueHint": "ecommerce.items",
+    "defaultValue": "ecommerce.items",
     "help": "Your name for the products list in the data layer, for example <code>ecommerce.items</code>.",
     "enablingConditions": [
       {
@@ -124,7 +124,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "lmy_name",
     "displayName": "Product Name",
     "simpleValueType": true,
-    "valueHint": "item_name",
+    "defaultValue": "item_name",
     "help": "Your name for the product name inside one product, for example <code>item_name</code>.",
     "enablingConditions": [
       {
@@ -140,7 +140,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "lmy_price",
     "displayName": "Price",
     "simpleValueType": true,
-    "valueHint": "price",
+    "defaultValue": "price",
     "help": "Your name for the price of one unit inside one product, for example <code>price</code>.",
     "enablingConditions": [
       {
@@ -156,7 +156,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "lmy_product_id",
     "displayName": "Product ID",
     "simpleValueType": true,
-    "valueHint": "item_id",
+    "defaultValue": "item_id",
     "help": "Your name for the product ID inside one product, for example <code>item_id</code>.",
     "enablingConditions": [
       {
@@ -172,7 +172,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "lmy_quantity",
     "displayName": "Quantity",
     "simpleValueType": true,
-    "valueHint": "quantity",
+    "defaultValue": "quantity",
     "help": "Your name for the quantity inside one product, for example <code>quantity</code>.",
     "enablingConditions": [
       {
